@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  status      String   @default("draft")  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  intake      Intake?
+  brief       Brief?
+  artifacts   Artifact[]
+  comments    Comment[]
+  changeLog   ChangeLog[]
+  changeRequests ChangeRequest[]
+  
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Intake {
+  id                    String   @id @default(cuid())
+  projectId             String   @unique
+  stakeholderDocuments  String   @db.Text
+  boilerplateLanguage   String   @db.Text
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Brief {
+  id                String   @id @default(cuid())
+  projectId         String   @unique
+  purpose           String   @db.Text
+  primaryAudience   String   @db.Text
+  secondaryAudience String   @db.Text
+  tone              String   @db.Text
+  sitemap           Json     
+  constraints       Json     
+  assumptions       Json     
+  openQuestions     Json    
+  isApproved        Boolean  @default(false)
+  approvedAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([isApproved])
+}
+
+model Artifact {
+  id          String   @id @default(cuid())
+  projectId   String
+  type        String   
+  content     Json     
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId, type])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  projectId String
+  author    String
+  text      String   @db.Text
+  section   String   
+  createdAt DateTime @default(now())
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId])
+}
+
+model ChangeLog {
+  id        String   @id @default(cuid())
+  projectId String
+  action    String   
+  user      String   @default("System")
+  metadata  Json?    
+  createdAt DateTime @default(now())
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId, createdAt])
+}
+
+model ChangeRequest {
+  id          String   @id @default(cuid())
+  projectId   String
+  briefId     String
+  requester   String
+  sections    Json     // Array of section names that need changes
+  feedback    String   @db.Text
+  status      String   @default("pending") // pending | approved | rejected | implemented
+  priority    String   @default("normal") // low | normal | high | critical
+  createdAt   DateTime @default(now())
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  resolution  String?  @db.Text
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt])
+}
