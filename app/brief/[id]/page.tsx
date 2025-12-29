@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import BriefClient from '@/components/BriefClient';
+import type { Project } from '@/types/brief.types';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -30,5 +31,5 @@ export default async function BriefPage({ params }: PageProps) {
     redirect(`/intake/${id}`);
   }
 
-  return <BriefClient project={project} />;
+  return <BriefClient project={project as Project} />;
 }

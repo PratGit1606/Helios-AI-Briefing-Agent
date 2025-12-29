@@ -5,6 +5,7 @@ import { generateArtifact } from '@/lib/ai';
 import { revalidatePath } from 'next/cache';
 import { logger, Timer } from '@/lib/debug';
 import type { ArtifactType } from '@/lib/types';
+import type { Prisma } from '@prisma/client';
 
 export interface GenerateArtifactsInput {
   projectId: string;
@@ -74,7 +75,7 @@ export async function generateArtifacts(input: GenerateArtifactsInput) {
           data: {
             projectId,
             type,
-            content: artifactContent
+            content: artifactContent as Prisma.InputJsonValue
           }
         });
 
@@ -91,7 +92,6 @@ export async function generateArtifacts(input: GenerateArtifactsInput) {
       }
     }
 
-    // Generate history artifact from change logs
     const changeLogs = await prisma.changeLog.findMany({
       where: { projectId },
       orderBy: { createdAt: 'desc' },
@@ -111,13 +111,12 @@ export async function generateArtifacts(input: GenerateArtifactsInput) {
       data: {
         projectId,
         type: 'history',
-        content: historyContent
+        content: historyContent as Prisma.InputJsonValue
       }
     });
 
     generatedArtifacts.push(historyArtifact);
 
-    // Log the artifact generation
     await prisma.changeLog.create({
       data: {
         projectId,
@@ -126,7 +125,7 @@ export async function generateArtifacts(input: GenerateArtifactsInput) {
         metadata: {
           artifactCount: generatedArtifacts.length,
           types: generatedArtifacts.map(a => a.type)
-        }
+        } as Prisma.InputJsonValue
       }
     });
 
