@@ -10,7 +10,7 @@ interface PageProps {
 export default async function BriefPage({ params }: PageProps) {
   const { id } = await params;
 
-  const project = await prisma.project.findUnique({
+  const projectData = await prisma.project.findUnique({
     where: { id },
     include: {
       brief: true,
@@ -23,13 +23,32 @@ export default async function BriefPage({ params }: PageProps) {
     }
   });
 
-  if (!project) {
+  if (!projectData) {
     notFound();
   }
 
-  if (!project.brief) {
+  if (!projectData.brief) {
     redirect(`/intake/${id}`);
   }
 
-  return <BriefClient project={project as Project} />;
+  const project: Project = {
+    ...projectData,
+    brief: {
+      ...projectData.brief,
+      sitemap: projectData.brief.sitemap as string[],
+      constraints: projectData.brief.constraints as string[],
+      assumptions: projectData.brief.assumptions as Array<{
+        text: string;
+        confidence: 'low' | 'medium' | 'high';
+      }>,
+      openQuestions: projectData.brief.openQuestions as string[]
+    },
+    artifacts: projectData.artifacts.map(artifact => ({
+      ...artifact,
+      content: artifact.content as Record<string, unknown>
+    })),
+    comments: projectData.comments
+  };
+
+  return <BriefClient project={project} />;
 }

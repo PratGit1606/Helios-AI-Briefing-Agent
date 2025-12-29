@@ -5,7 +5,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { generateArtifacts, getArtifacts } from '@/app/actions/artifacts';
 import { approveBrief } from '@/app/actions/briefs';
-import type { Project, TabType } from '@/types/brief.types';
+import type { Project, TabType, Artifact } from '@/types/brief.types';
+import { transformArtifact } from '@/lib/transforms';
 
 import BriefHeader from './brief/BriefHeader';
 import BriefTabs from './brief/BriefTabs';
@@ -22,7 +23,20 @@ import ExportPanel from './brief/ExportPanel';
 
 import { getChangeRequests } from '@/app/actions/changeRequests';
 
-
+interface ChangeRequest {
+  id: string;
+  projectId: string;
+  briefId: string;
+  requester: string;
+  sections: string[];
+  feedback: string;
+  status: string;
+  priority: string;
+  createdAt: Date;
+  reviewedAt: Date | null;
+  reviewedBy: string | null;
+  resolution: string | null;
+}
 
 interface BriefClientProps {
   project: Project;
@@ -34,10 +48,9 @@ export default function BriefClient({ project }: BriefClientProps) {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('brief');
   const [isGeneratingArtifacts, setIsGeneratingArtifacts] = useState(false);
-  const [artifacts, setArtifacts] = useState(project.artifacts || []);
+  const [artifacts, setArtifacts] = useState<Artifact[]>(project.artifacts || []);
   const [artifactError, setArtifactError] = useState<string | null>(null);
-  const [changeRequests, setChangeRequests] = useState<any[]>([]);
-
+  const [changeRequests, setChangeRequests] = useState<ChangeRequest[]>([]);
 
   const brief = project.brief;
 
@@ -55,7 +68,9 @@ export default function BriefClient({ project }: BriefClientProps) {
 
         const artifactsResult = await getArtifacts(project.id);
         if (artifactsResult.success && artifactsResult.data) {
-          setArtifacts(artifactsResult.data);
+          // Transform Prisma artifacts to match Artifact type
+          const transformedArtifacts = artifactsResult.data.map(transformArtifact);
+          setArtifacts(transformedArtifacts);
         }
       } catch (error) {
         console.error('Error generating artifacts:', error);
@@ -74,7 +89,7 @@ export default function BriefClient({ project }: BriefClientProps) {
     const fetchChangeRequests = async () => {
       const result = await getChangeRequests(project.id);
       if (result.success && result.data) {
-        setChangeRequests(result.data);
+        setChangeRequests(result.data as ChangeRequest[]);
       }
     };
 
